@@ -7,10 +7,12 @@ import os
 import re
 from typing import Dict, List
 from astrbot.api.all import Plain  
+from astrbot.api.all import Record  # 确保导入 Record 组件
 
 @register("astrbot_plugin_Keyword_reply_language", "关键词语音回复", 
           "自动检测消息中的关键词并回复对应的本地语音文件", 
           "v1.0.0")
+
 class KeywordVoicePlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
@@ -268,39 +270,63 @@ class KeywordVoicePlugin(Star):
         if room in self.rooms:
             logger.info(f"群组 {room} 已禁用插件")
             return
-        
-       # 提取消息文本
+
+        # 提取消息文本
         message_chain = getattr(event, "message_chain", None) or getattr(event, "message", None)
         if not message_chain:
             return
-            
+
         plain_text = ""
         for element in message_chain.chain:
             if isinstance(element, Plain):
                 plain_text += element.text.strip() + " "
         message = plain_text.strip()
-        logger.info(f"接收消息：{message}") 
+        logger.info(f"接收消息：{message}")
 
-         # 随机概率判定
+        # 随机概率判定
         if random.random() > self.reply_chance:
             logger.info(f"概率判定未通过（当前概率：{self.reply_chance})")
             return
 
-        # 匹配关键词
+        # --- 修复：添加完整的关键词匹配逻辑 ---
         matched_keyword = None
         keyword_data = None
-        # ...（原有匹配逻辑，添加日志输出）
-        
+
+        if self.regex_mode:
+            for keyword, data in self.keywords.items():
+                try:
+                    flags = re.IGNORECASE if not self.case_sensitive else 0
+                    if re.search(keyword, message, flags=flags):
+                        matched_keyword = keyword
+                        keyword_data = data
+                        break
+                except re.error as e:
+                    logger.error(f"正则表达式错误：{keyword} - {e}")
+        else:
+            message_check = message if self.case_sensitive else message.lower()
+            for keyword, data in self.keywords.items():
+                keyword_check = keyword if self.case_sensitive else keyword.lower()
+                if self.exact_match:
+                    if message_check == keyword_check:
+                        matched_keyword = keyword
+                        keyword_data = data
+                        break
+                else:
+                    if keyword_check in message_check:
+                        matched_keyword = keyword
+                        keyword_data = data
+                        break
+
+        # 发送语音
         if matched_keyword and keyword_data:
             voice_file = keyword_data["voice"]
-            voice_path = os.path.join(self.voice_folder, voice_file)
+            oice_path = os.path.join(self.voice_folder, voice_file)
             logger.info(f"准备发送语音文件：{voice_path}")
 
             if not os.path.exists(voice_path):
                 logger.error(f"语音文件不存在：{voice_path}")
                 return
-        
-        # 发送语音
+
             try:
                 voice_chain = MessageChain()
                 voice_chain.chain.append(Record(file=voice_path))
@@ -310,9 +336,9 @@ class KeywordVoicePlugin(Star):
                 logger.error(f"发送语音失败：{e}")
         else:
             logger.info("未匹配到关键词")
-            
-            # 如果启用了文本回复且有文本，同时发送文本
-            if self.send_text and keyword_data.get("text"):
-                text_chain = MessageChain()
-                text_chain.chain.append(Plain(keyword_data["text"]))
-                await event.send(text_chain)
+
+        # 文本回复逻辑
+        if self.send_text and keyword_data.get("text"):
+            ext_chain = MessageChain()
+            text_chain.chain.append(Plain(keyword_data["text"]))
+            await event.send(text_chain)
