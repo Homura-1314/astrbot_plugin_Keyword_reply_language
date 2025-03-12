@@ -46,8 +46,8 @@ class KeywordVoicePlugin(Star):
         # 加载关键词
         if os.path.exists(self.keywords_file):
             try:
-                with open(self.keywords_file, 'r', encoding='utf-8') as f:
-                    self.keywords = json.load(f)
+                with open(self.keywords_file, "r", encoding="utf-8") as f:
+                    self.keywords = json.load(f)  # 直接加载整个JSON文件
                 logger.info(f"已加载 {len(self.keywords)} 个关键词")
             except Exception as e:
                 logger.error(f"加载关键词文件失败: {e}")
@@ -58,10 +58,10 @@ class KeywordVoicePlugin(Star):
             self.keywords = {}
             self.save_keywords()
 
-        # 加载禁用群组
+        # 加载禁用群组（同理修改）
         if os.path.exists(self.rooms_file):
             try:
-                with open(self.rooms_file, 'r', encoding='utf-8') as f:
+                with open(self.rooms_file, "r", encoding="utf-8") as f:
                     self.rooms = json.load(f)
                 logger.info(f"已加载 {len(self.rooms)} 个禁用群组")
             except Exception as e:
