@@ -15,11 +15,16 @@ class KeywordVoicePlugin(Star):
         super().__init__(context)
         self.enabled = True
         self.rooms = []
-        # 通过 get_config() 获取全局配置对象
+        # 从全局配置中读取插件配置（键名必须与注册名一致）
         self.config = context.get_config().get("astrbot_plugin_Keyword_reply_language", {})
-        self.keywords = {}
-        self.voice_folder = self.config.get('语音文件夹', './data/plugins/astrbot_plugin_Keyword_reply_language/voices/')
-        self.regex_mode = self.config.get('正则表达式模式', False)
+        
+        # 加载所有配置项（键名与 _conf_schema.json 完全一致）
+        self.voice_folder = self.config.get("语音文件夹", "./data/plugins/astrbot_plugin_Keyword_reply_language/voices/")
+        self.regex_mode = self.config.get("正则表达式模式", False)
+        self.case_sensitive = self.config.get("区分大小写", False)
+        self.exact_match = self.config.get("精确匹配", False)
+        self.reply_chance = self.config.get("回复概率", 1.0)
+        self.send_text = self.config.get("同时发送文本", False)
         
         
         
