@@ -248,8 +248,8 @@ class KeywordVoicePlugin(Star):
         self.save_keywords()
         yield event.plain_result(f"已设置关键词「{keyword}」的文本内容")
 
-    @filter.on_message()
-    async def on_message(self, event: AstrMessageEvent):
+    @filter.on_decorating_result()
+    async def on_decorating_result(self, event: AstrMessageEvent):
         """处理接收到的消息"""
         # 检查群组是否启用插件
         room = event.get_group_id()
