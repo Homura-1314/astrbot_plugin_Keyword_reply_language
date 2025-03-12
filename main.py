@@ -76,8 +76,8 @@ class KeywordVoicePlugin(Star):
     def save_keywords(self):
         """保存关键词到文件"""
         try:
-            with open(self.keywords_file, 'w', encoding='utf-8') as f:
-                json.dump(self.keywords, f, ensure_ascii=False, indent=2)
+            with open(self.keywords_file, "w", encoding="utf-8") as f:
+                json.dump(self.keywords, f, ensure_ascii=False, indent=2)  # 使用缩进美化格式
             logger.info(f"已保存 {len(self.keywords)} 个关键词")
         except Exception as e:
             logger.error(f"保存关键词文件失败: {e}")
