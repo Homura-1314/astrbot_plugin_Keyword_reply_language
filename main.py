@@ -20,7 +20,7 @@ class KeywordVoicePlugin(Star):
         self.rooms = []
         # 从全局配置中读取插件配置（键名必须与注册名一致）
         self.config = context.get_config().get("astrbot_plugin_Keyword_reply_language", {})
-        
+
         # 加载所有配置项（键名与 _conf_schema.json 完全一致）
         self.voice_folder = self.config.get("语音文件夹", "./data/plugins/astrbot_plugin_Keyword_reply_language/voices/")
         self.regex_mode = self.config.get("正则表达式模式", False)
@@ -28,18 +28,15 @@ class KeywordVoicePlugin(Star):
         self.exact_match = self.config.get("精确匹配", False)
         self.reply_chance = self.config.get("回复概率", 1.0)
         self.send_text = self.config.get("同时发送文本", False)
-        
-        
-        
-        
+
         # 文件路径
         self.keywords_file = './data/plugins/astrbot_plugin_Keyword_reply_language/keywords.jsonl'
         self.rooms_file = './data/plugins/astrbot_plugin_Keyword_reply_language/disabled_rooms.jsonl'
-        
+
         # 创建插件目录和语音文件夹
         os.makedirs('./data/plugins/astrbot_plugin_Keyword_reply_language', exist_ok=True)
         os.makedirs(self.voice_folder, exist_ok=True)
-        
+
         # 加载关键词和群组设置
         self.load_data()
         logger.info(f"关键词语音回复插件已加载，共 {len(self.keywords)} 个关键词")
@@ -60,7 +57,7 @@ class KeywordVoicePlugin(Star):
             logger.info(f"关键词文件不存在，已创建空文件")
             self.keywords = {}
             self.save_keywords()
-            
+
         # 加载禁用群组
         if os.path.exists(self.rooms_file):
             try:
@@ -99,7 +96,7 @@ class KeywordVoicePlugin(Star):
         """开关插件"""
         user_id = event.get_sender_id()
         room = event.get_group_id()
-        
+
         if room in self.rooms:
             self.rooms.remove(room)
             chain = [
@@ -114,7 +111,7 @@ class KeywordVoicePlugin(Star):
                 Plain(f"\n本群关键词语音回复已禁用"),
                 Face(id=337)
             ]
-        
+
         self.save_rooms()
         yield event.chain_result(chain)
 
@@ -124,7 +121,7 @@ class KeywordVoicePlugin(Star):
         user_id = event.get_sender_id()
         self.send_text = not self.send_text
         self.config['同时发送文本'] = self.send_text
-        
+
         if self.send_text:
             chain = [
                 At(qq=user_id),
@@ -137,7 +134,7 @@ class KeywordVoicePlugin(Star):
                 Plain(f"\n文本已经关闭"),
                 Face(id=337)
             ]
-        
+
         yield event.chain_result(chain)
 
     @filter.command_group("kv")
@@ -150,7 +147,7 @@ class KeywordVoicePlugin(Star):
         """添加关键词语音回复
          指令格式: /kv add [关键词] [语音文件名]"""
         voice_path = os.path.join(self.voice_folder, voice_file)
-        
+
         # 检查语音文件是否存在
         if not os.path.exists(voice_path):
             existing_files = os.listdir(self.voice_folder)
@@ -158,14 +155,13 @@ class KeywordVoicePlugin(Star):
             f"错误：语音文件 {voice_file} 不存在。目录下现有文件：{', '.join(existing_files)}"
             )
             return
-    
 
         # 添加或更新关键词
         if keyword in self.keywords:
             yield event.plain_result(f"关键词「{keyword}」已更新 → {voice_file}")
         else:
             yield event.plain_result(f"已添加关键词「{keyword}」→ {voice_file}")
-    
+
         self.keywords[keyword] = {
         "voice": voice_file,
         "text": ""  # 文本内容留空（若不需要可删除此行）
@@ -190,7 +186,7 @@ class KeywordVoicePlugin(Star):
         if not self.keywords:
             yield event.plain_result("暂无关键词")
             return
-        
+
         result = "当前关键词语音列表：\n"
         for i, (keyword, data) in enumerate(self.keywords.items(), 1):
             voice_file = data["voice"]
@@ -200,7 +196,7 @@ class KeywordVoicePlugin(Star):
                 result += f"{i}. 「{keyword}」→ {voice_file} ({text_preview})\n"
             else:
                 result += f"{i}. 「{keyword}」→ {voice_file}\n"
-        
+
         yield event.plain_result(result.strip())
 
     @keyword_voice.command("regex")
@@ -209,7 +205,7 @@ class KeywordVoicePlugin(Star):
         /kv regex"""
         self.regex_mode = not self.regex_mode
         self.config['正则表达式模式'] = self.regex_mode
-        
+
         if self.regex_mode:
             yield event.plain_result("已启用正则表达式模式")
         else:
@@ -221,7 +217,7 @@ class KeywordVoicePlugin(Star):
         /kv case"""
         self.case_sensitive = not self.case_sensitive
         self.config['区分大小写'] = self.case_sensitive
-        
+
         if self.case_sensitive:
             yield event.plain_result("已启用大小写敏感")
         else:
@@ -233,7 +229,7 @@ class KeywordVoicePlugin(Star):
         /kv exact"""
         self.exact_match = not self.exact_match
         self.config['精确匹配'] = self.exact_match
-        
+
         if self.exact_match:
             yield event.plain_result("已启用精确匹配")
         else:
@@ -246,7 +242,7 @@ class KeywordVoicePlugin(Star):
         if chance < 0.0 or chance > 1.0:
             yield event.plain_result("概率必须在 0.0-1.0 之间")
             return
-            
+
         self.reply_chance = chance
         self.config['回复概率'] = chance
         yield event.plain_result(f"回复概率已设置为 {chance*100:.0f}%")
@@ -258,15 +254,14 @@ class KeywordVoicePlugin(Star):
         if keyword not in self.keywords:
             yield event.plain_result(f"关键词「{keyword}」不存在")
             return
-        
+
         self.keywords[keyword]["text"] = text
         self.save_keywords()
         yield event.plain_result(f"已设置关键词「{keyword}」的文本内容")
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
-        logger.info(f"匹配到的关键词：{matched_keyword}")
-        logger.info(f"语音文件是否存在：{os.path.exists(voice_path)}")
+
         # 检查群组是否禁用
         room = event.get_group_id()
         if room in self.rooms:
@@ -322,8 +317,9 @@ class KeywordVoicePlugin(Star):
         # 发送语音
         if matched_keyword and keyword_data:
             voice_file = keyword_data["voice"]
-            oice_path = os.path.join(self.voice_folder, voice_file)
-            logger.info(f"准备发送语音文件：{voice_path}")
+            voice_path = os.path.join(self.voice_folder, voice_file)
+            logger.info(f"语音文件路径：{voice_path}")
+            logger.info(f"文件是否存在：{os.path.exists(voice_path)}")
 
             if not os.path.exists(voice_path):
                 logger.error(f"语音文件不存在：{voice_path}")
@@ -331,16 +327,8 @@ class KeywordVoicePlugin(Star):
 
             try:
                 voice_chain = MessageChain()
-                voice_chain.chain.append(Record(file=voice_path))
+                voice_chain.chain.append(Record.fromFileSystem(voice_path))  # 关键修改
                 await event.send(voice_chain)
                 logger.info("语音消息发送成功")
             except Exception as e:
                 logger.error(f"发送语音失败：{e}")
-        else:
-            logger.info("未匹配到关键词")
-
-        # 文本回复逻辑
-        if self.send_text and keyword_data.get("text"):
-            ext_chain = MessageChain()
-            text_chain.chain.append(Plain(keyword_data["text"]))
-            await event.send(text_chain)
