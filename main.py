@@ -326,8 +326,9 @@ class KeywordVoicePlugin(Star):
                 return
 
             try:
-                voice_chain = MessageChain()
-                voice_chain.chain.append(Record.fromFileSystem(voice_path))  # 关键修改
+                voice_chain = MessageChain([
+                Record.fromFileSystem(voice_path)
+                ])
                 await event.send(voice_chain)
                 logger.info("语音消息发送成功")
             except Exception as e:
