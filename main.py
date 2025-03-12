@@ -30,8 +30,8 @@ class KeywordVoicePlugin(Star):
         self.send_text = self.config.get("同时发送文本", False)
 
         # 文件路径
-        self.keywords_file = './data/plugins/astrbot_plugin_Keyword_reply_language/keywords.jsonl'
-        self.rooms_file = './data/plugins/astrbot_plugin_Keyword_reply_language/disabled_rooms.jsonl'
+        self.keywords_file = './data/plugins/astrbot_plugin_Keyword_reply_language/keywords.json'
+        self.rooms_file = './data/plugins/astrbot_plugin_Keyword_reply_language/disabled_rooms.json'
 
         # 创建插件目录和语音文件夹
         os.makedirs('./data/plugins/astrbot_plugin_Keyword_reply_language', exist_ok=True)
@@ -313,7 +313,6 @@ class KeywordVoicePlugin(Star):
                         matched_keyword = keyword
                         keyword_data = data
                         break
-
         # 发送语音
         if matched_keyword and keyword_data:
             voice_file = keyword_data["voice"]
