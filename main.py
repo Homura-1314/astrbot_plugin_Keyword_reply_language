@@ -6,6 +6,7 @@ import json
 import os
 import re
 from typing import Dict, List
+from astrbot.api.all import Plain  
 
 @register("astrbot_plugin_Keyword_reply_language", "关键词语音回复", 
           "自动检测消息中的关键词并回复对应的本地语音文件", 
@@ -25,6 +26,7 @@ class KeywordVoicePlugin(Star):
         self.exact_match = self.config.get("精确匹配", False)
         self.reply_chance = self.config.get("回复概率", 1.0)
         self.send_text = self.config.get("同时发送文本", False)
+        
         
         
         
@@ -255,17 +257,26 @@ class KeywordVoicePlugin(Star):
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
-        """处理接收到的消息"""
-        # 检查群组是否启用插件
+       # 检查群组是否禁用插件
         room = event.get_group_id()
         if room in self.rooms:
             return
         
-        # 获取消息内容
-        message = event.get_plain_text()
-        if not message:
+       # 获取消息链（兼容不同适配器）
+        message_chain = getattr(event, "message_chain", None) or getattr(event, "message", None)
+        if not message_chain:
             return
             
+        # 提取纯文本内容
+        plain_text = ""
+        for element in message_chain.chain:
+            if isinstance(element, Plain):
+                plain_text += element.text.strip() + " "
+        message = plain_text.strip() 
+
+        if not message:
+            return
+
         # 随机决定是否回复
         if random.random() > self.reply_chance:
             return
