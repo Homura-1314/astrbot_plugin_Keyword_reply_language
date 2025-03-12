@@ -1,4 +1,6 @@
 astrbot_plugin_Keyword_reply_language:
+  platform:
+  adapter: aiocqhttp  # 确认适配器名称正确
   语音文件夹: "./data/plugins/astrbot_plugin_Keyword_reply_language/voices/"
   正则表达式模式: false
   区分大小写: false
