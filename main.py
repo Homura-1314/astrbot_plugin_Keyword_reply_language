@@ -263,6 +263,8 @@ class KeywordVoicePlugin(Star):
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
+        voice_path = os.path.join(self.voice_folder, voice_file)
+        logger.info(f"尝试加载语音文件路径：{voice_path}")
        # 检查群组是否禁用插件
         room = event.get_group_id()
         if room in self.rooms:
