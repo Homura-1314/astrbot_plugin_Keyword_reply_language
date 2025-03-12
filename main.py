@@ -6,18 +6,23 @@ import os
 import re
 from typing import Dict, List
 
-@register("astrbot_plugin_Keyword_reply_language", "关键词语音回复",
-          "自动检测消息中的关键词并回复对应的本地语音文件",
+@register("astrbot_plugin_Keyword_reply_language", "关键词语音回复", 
+          "自动检测消息中的关键词并回复对应的本地语音文件", 
           "v1.0.0")
 class KeywordVoicePlugin(Star):
     def __init__(self, context: Context):
         super().__init__(context)
-        super().__init__(context)
         self.enabled = True
-        self.rooms = []  # 关闭插件的群组列表
-        self.config = context.config.get("KeywordVoicePlugin", {})  # 从上下文获取配置
+        self.rooms = []
+        self.config = context.settings  # 关键修改
         self.keywords = {}
         self.voice_folder = self.config.get('语音文件夹', './data/plugins/astrbot_plugin_Keyword_reply_language/voices/')
+        self.regex_mode = self.config.get('正则表达式模式', False)
+        self.case_sensitive = self.config.get('区分大小写', False)
+        self.exact_match = self.config.get('精确匹配', False)
+        self.reply_chance = self.config.get('回复概率', 1.0)
+        self.send_text = self.config.get('同时发送文本', False)
+        
         
         # 文件路径
         self.keywords_file = './data/plugins/astrbot_plugin_Keyword_reply_language/keywords.jsonl'
