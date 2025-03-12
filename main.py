@@ -144,23 +144,29 @@ class KeywordVoicePlugin(Star):
         pass
 
     @keyword_voice.command("add")
-    async def add_keyword(self, event: AstrMessageEvent, keyword: str, voice_file: str, text: str = ""):
+    async def add_keyword(self, event: AstrMessageEvent, keyword: str, voice_file: str):
         """添加关键词语音回复
-        /kv add 关键词 语音文件名 [文本内容]"""
+         指令格式: /kv add [关键词] [语音文件名]"""
         voice_path = os.path.join(self.voice_folder, voice_file)
         
+        # 检查语音文件是否存在
         if not os.path.exists(voice_path):
-            yield event.plain_result(f"语音文件 {voice_file} 不存在，请确保文件位于 {self.voice_folder} 目录下")
+            existing_files = os.listdir(self.voice_folder)
+            yield event.plain_result(
+            f"错误：语音文件 {voice_file} 不存在。目录下现有文件：{', '.join(existing_files)}"
+            )
             return
-        
+    
+
+        # 添加或更新关键词
         if keyword in self.keywords:
-            yield event.plain_result(f"关键词「{keyword}」已存在，已更新语音文件")
+            yield event.plain_result(f"关键词「{keyword}」已更新 → {voice_file}")
         else:
-            yield event.plain_result(f"已添加关键词「{keyword}」对应语音文件 {voice_file}")
-        
+            yield event.plain_result(f"已添加关键词「{keyword}」→ {voice_file}")
+    
         self.keywords[keyword] = {
-            "voice": voice_file,
-            "text": text
+        "voice": voice_file,
+        "text": ""  # 文本内容留空（若不需要可删除此行）
         }
         self.save_keywords()
 
