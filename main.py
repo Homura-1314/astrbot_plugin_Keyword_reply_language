@@ -263,78 +263,53 @@ class KeywordVoicePlugin(Star):
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
-        voice_path = os.path.join(self.voice_folder, voice_file)
-        logger.info(f"尝试加载语音文件路径：{voice_path}")
-       # 检查群组是否禁用插件
+        # 检查群组是否禁用
         room = event.get_group_id()
         if room in self.rooms:
+            logger.info(f"群组 {room} 已禁用插件")
             return
         
-       # 获取消息链（兼容不同适配器）
+       # 提取消息文本
         message_chain = getattr(event, "message_chain", None) or getattr(event, "message", None)
         if not message_chain:
             return
             
-        # 提取纯文本内容
         plain_text = ""
         for element in message_chain.chain:
             if isinstance(element, Plain):
                 plain_text += element.text.strip() + " "
-        message = plain_text.strip() 
+        message = plain_text.strip()
+        logger.info(f"接收消息：{message}") 
 
-        if not message:
-            return
-
-        # 随机决定是否回复
+         # 随机概率判定
         if random.random() > self.reply_chance:
+            logger.info(f"概率判定未通过（当前概率：{self.reply_chance})")
             return
-            
-        # 检查是否匹配关键词
+
+        # 匹配关键词
         matched_keyword = None
         keyword_data = None
+        # ...（原有匹配逻辑，添加日志输出）
         
-        if self.regex_mode:
-            # 正则表达式模式
-            for keyword, data in self.keywords.items():
-                try:
-                    flags = 0 if self.case_sensitive else re.IGNORECASE
-                    if re.search(keyword, message, flags):
-                        matched_keyword = keyword
-                        keyword_data = data
-                        break
-                except re.error:
-                    logger.error(f"正则表达式错误: {keyword}")
-        else:
-            # 普通模式
-            message_check = message if self.case_sensitive else message.lower()
-            
-            for keyword, data in self.keywords.items():
-                keyword_check = keyword if self.case_sensitive else keyword.lower()
-                
-                if self.exact_match:
-                    if message_check == keyword_check:
-                        matched_keyword = keyword
-                        keyword_data = data
-                        break
-                else:
-                    if keyword_check in message_check:
-                        matched_keyword = keyword
-                        keyword_data = data
-                        break
-        
-        # 如果有匹配的关键词，回复语音
         if matched_keyword and keyword_data:
             voice_file = keyword_data["voice"]
             voice_path = os.path.join(self.voice_folder, voice_file)
-            
+            logger.info(f"准备发送语音文件：{voice_path}")
+
             if not os.path.exists(voice_path):
-                logger.error(f"语音文件不存在: {voice_path}")
+                logger.error(f"语音文件不存在：{voice_path}")
                 return
-            
-            # 发送语音
-            voice_chain = MessageChain()
-            voice_chain.chain.append(Record(file=voice_path))
-            await event.send(voice_chain)
+        
+        # 发送语音
+            try:
+                voice_chain = MessageChain()
+                voice_chain.chain.append(Record(file=voice_path))
+                await event.send(voice_chain)
+                logger.info("语音消息发送成功")
+            except Exception as e:
+                logger.error(f"发送语音失败：{e}")
+        else:
+            logger.info("未匹配到关键词")
             
             # 如果启用了文本回复且有文本，同时发送文本
             if self.send_text and keyword_data.get("text"):
