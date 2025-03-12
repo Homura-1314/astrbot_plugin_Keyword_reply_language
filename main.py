@@ -1,6 +1,7 @@
 import random
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.all import *
+from AstrBot.astrbot.core.star.context import Context
 import json
 import os
 import re
@@ -14,14 +15,12 @@ class KeywordVoicePlugin(Star):
         super().__init__(context)
         self.enabled = True
         self.rooms = []
-        self.config = context.settings  # 关键修改
+        # 通过 get_config() 获取全局配置对象
+        self.config = context.get_config().get("astrbot_plugin_Keyword_reply_language", {})
         self.keywords = {}
         self.voice_folder = self.config.get('语音文件夹', './data/plugins/astrbot_plugin_Keyword_reply_language/voices/')
         self.regex_mode = self.config.get('正则表达式模式', False)
-        self.case_sensitive = self.config.get('区分大小写', False)
-        self.exact_match = self.config.get('精确匹配', False)
-        self.reply_chance = self.config.get('回复概率', 1.0)
-        self.send_text = self.config.get('同时发送文本', False)
+        
         
         
         # 文件路径
