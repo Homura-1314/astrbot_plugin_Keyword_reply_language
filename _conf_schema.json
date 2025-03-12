@@ -1,0 +1,32 @@
+{
+    "语音文件夹": {
+        "description": "语音文件存放路径（默认：./data/plugins/astrbot_plugin_Keyword_reply_language/voices/）",
+        "type": "string",
+        "hint": "示例：./data/voices/"
+    },
+    "正则表达式模式": {
+        "description": "是否启用正则表达式匹配模式",
+        "type": "bool",
+        "hint": "开启后关键词将作为正则表达式解析"
+    },
+    "区分大小写": {
+        "description": "是否区分关键词的大小写",
+        "type": "bool",
+        "hint": "开启后关键词大小写必须完全匹配"
+    },
+    "精确匹配": {
+        "description": "是否启用精确匹配模式",
+        "type": "bool",
+        "hint": "开启后消息必须完全等于关键词才会触发"
+    },
+    "回复概率": {
+        "description": "请输入触发回复的概率（0到1之间，1为必定触发）",
+        "type": "float",
+        "hint": "示例：0.8 表示80%概率触发"
+    },
+    "同时发送文本": {
+        "description": "是否在发送语音时附带文本内容",
+        "type": "bool",
+        "hint": "开启后会同时发送语音和文本"
+    }
+}
