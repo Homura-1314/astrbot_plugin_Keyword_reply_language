@@ -265,6 +265,8 @@ class KeywordVoicePlugin(Star):
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
+        logger.info(f"匹配到的关键词：{matched_keyword}")
+        logger.info(f"语音文件是否存在：{os.path.exists(voice_path)}")
         # 检查群组是否禁用
         room = event.get_group_id()
         if room in self.rooms:
