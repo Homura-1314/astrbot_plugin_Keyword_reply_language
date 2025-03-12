@@ -1,9 +1,8 @@
 name: astrbot_plugin_Keyword_reply_language
-语音文件夹: ./data/plugins/astrbot_plugin_Keyword_reply_language/voices/
-正则表达式模式: false
-区分大小写: false
-精确匹配: false
-回复概率: 1.0
-同时发送文本: true
-为当前群组开启/关闭插件: true
-开启/关闭同时发送文本功能: true
+KeywordVoicePlugin:
+  语音文件夹: "./data/plugins/astrbot_plugin_Keyword_reply_language/voices/"
+  正则表达式模式: false
+  区分大小写: false
+  精确匹配: false
+  回复概率: 1.0
+  同时发送文本: false
