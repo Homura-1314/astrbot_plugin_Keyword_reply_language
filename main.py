@@ -95,6 +95,16 @@ class KeywordVoicePlugin(Star):
             logger.info(f"已保存 {len(self.keywords)} 个关键词")
         except Exception as e:
             logger.error(f"保存关键词文件失败: {e}")
+            
+    def save_rooms(self):
+        """保存禁用群组到文件"""
+        try:
+            with open(self.rooms_file, 'w', encoding='utf-8') as f:
+                json.dump(self.rooms, f, ensure_ascii=False, indent=2)
+            logger.info(f"已保存 {len(self.rooms)} 个禁用群组")
+        except Exception as e:
+            logger.error(f"保存禁用群组文件失败: {e}")
+            
     @filter.command("kwvoice")
     async def switch(self, event: AstrMessageEvent):
         """开关插件"""
