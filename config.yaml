@@ -4,4 +4,5 @@ astrbot_plugin_Keyword_reply_language:
   区分大小写: false
   精确匹配: false
   回复概率: 1.0
-  同时发送文本: false
+  同时发送文本: true
+  阻止LLM处理: true

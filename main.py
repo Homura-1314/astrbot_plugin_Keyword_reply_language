@@ -53,8 +53,6 @@ class KeywordVoicePlugin(Star):
         self.load_data()
         logger.info(f"关键词语音回复插件已加载，共 {len(self.keywords)} 个关键词")
 
-    
-
     def load_data(self):
         """加载关键词和群组设置"""
         # 加载关键词
@@ -71,7 +69,7 @@ class KeywordVoicePlugin(Star):
             logger.info(f"关键词文件不存在，已创建空文件")
             self.keywords = {}
             self.save_keywords()
-    
+
         # 加载禁用群组（同理修改）
         if os.path.exists(self.rooms_file):
             try:
@@ -95,7 +93,7 @@ class KeywordVoicePlugin(Star):
             logger.info(f"已保存 {len(self.keywords)} 个关键词")
         except Exception as e:
             logger.error(f"保存关键词文件失败: {e}")
-            
+
     def save_rooms(self):
         """保存禁用群组到文件"""
         try:
@@ -104,7 +102,7 @@ class KeywordVoicePlugin(Star):
             logger.info(f"已保存 {len(self.rooms)} 个禁用群组")
         except Exception as e:
             logger.error(f"保存禁用群组文件失败: {e}")
-            
+
     @filter.command("kwvoice")
     async def switch(self, event: AstrMessageEvent):
         """开关插件"""
@@ -263,22 +261,26 @@ class KeywordVoicePlugin(Star):
 
     @keyword_voice.command("text")
     async def set_keyword_text(self, event: AstrMessageEvent, keyword: str, text: str):
-        """设置关键词的文本内容
-        /kv text 关键词 文本内容"""
+        """设置关键词的全局文本内容（所有群组和私聊生效）"""
         if keyword not in self.keywords:
             yield event.plain_result(f"关键词「{keyword}」不存在")
             return
 
-        self.keywords[keyword]["text"] = text
+        self.keywords[keyword]["text"] = text  # 直接更新全局文本
         self.save_keywords()
-        yield event.plain_result(f"已设置关键词「{keyword}」的文本内容")
+        yield event.plain_result(f"已设置关键词「{keyword}」的全局文本内容")
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
-        # 检查群组是否禁用
-        room = event.get_group_id()
-        if room in self.rooms:
-            return
+        # 如果是私聊，跳过群组检查
+        if event.get_message_type() == "private":
+            # 直接处理消息
+            message = event.message_str.strip()
+
+        else:# 检查群组是否禁用
+            room = event.get_group_id()
+            if room in self.rooms:
+                return
 
         # 直接获取消息文本（兼容 aiocqhttp）
         message = event.message_str.strip()
@@ -318,7 +320,7 @@ class KeywordVoicePlugin(Star):
                         keyword_data = data
                         break
 
-        if matched_keyword and keyword_data:
+        if matched_keyword and keyword_data:          
             voice_file = keyword_data["voice"]
             voice_path = os.path.join(self.voice_folder, voice_file)
             logger.info(f"语音文件路径：{voice_path}")
@@ -334,3 +336,8 @@ class KeywordVoicePlugin(Star):
                 logger.info("语音消息发送成功")
             except Exception as e:
                 logger.error(f"发送语音失败：{e}")
+            
+            # 发送全局文本（无需判断群组或私聊）
+            if self.send_text and keyword_data.get("text"):
+                text_chain = MessageChain([Plain(keyword_data["text"])])
+                await event.send(text_chain)
