@@ -1,4 +1,5 @@
 import random
+from astrbot.api.message_components import Record, Plain, At, Face
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.all import *
 from astrbot.core.star.context import Context
@@ -6,27 +7,33 @@ import json
 import os
 import re
 from typing import Dict, List
+from astrbot.core.star import Star
 from astrbot.api.all import Plain
 from astrbot.api.message_components import Record  # 仅保留必要的导入
 from astrbot.api.event import filter
 from astrbot.core.star.filter.platform_adapter_type import PlatformAdapterType
 from astrbot.core.star.filter.event_message_type import EventMessageType
 from astrbot.api.event import filter, AstrMessageEvent
+from astrbot.api.event import MessageChain  # 确保导入 MessageChain
 
-@register("astrbot_plugin_Keyword_reply_language", "关键词语音回复", 
-          "自动检测消息中的关键词并回复对应的本地语音文件", 
-          "v1.0.0")
-
+@register(
+    "astrbot_plugin_Keyword_reply_language",
+    "关键词语音回复",
+    "自动检测消息中的关键词并回复对应的本地语音文件",
+    "v1.0.0",
+)
 class KeywordVoicePlugin(Star):
-    def __init__(self, context: Context):
-        super().__init__(context)
+    def __init__(self, context: Context):  # 仅接收 context
+        super().__init__(context)  # 父类构造函数仅需 context
         self.enabled = True
         self.rooms = []
-        # 从全局配置中读取插件配置（键名必须与注册名一致）
-        self.config = context.get_config().get("astrbot_plugin_Keyword_reply_language", {})
-
-        # 加载所有配置项（键名与 _conf_schema.json 完全一致）
-        self.voice_folder = self.config.get("语音文件夹", "./data/plugins/astrbot_plugin_Keyword_reply_language/voices/")
+        self.config = context.get_config().get(
+            "astrbot_plugin_Keyword_reply_language", {}
+        )
+        self.keywords = {}
+        self.voice_folder = self.config.get(
+            "语音文件夹", "./data/plugins/astrbot_plugin_Keyword_reply_language/voices/"
+        )
         self.regex_mode = self.config.get("正则表达式模式", False)
         self.case_sensitive = self.config.get("区分大小写", False)
         self.exact_match = self.config.get("精确匹配", False)
@@ -34,16 +41,19 @@ class KeywordVoicePlugin(Star):
         self.send_text = self.config.get("同时发送文本", False)
 
         # 文件路径
-        self.keywords_file = './data/plugins/astrbot_plugin_Keyword_reply_language/keywords.jsonl'
-        self.rooms_file = './data/plugins/astrbot_plugin_Keyword_reply_language/disabled_rooms.jsonl'
+        self.keywords_file = (
+            "./data/plugins/astrbot_plugin_Keyword_reply_language/keywords.json"
+        )
+        self.rooms_file = (
+            "./data/plugins/astrbot_plugin_Keyword_reply_language/disabled_rooms.json"
+        )
 
-        # 创建插件目录和语音文件夹
-        os.makedirs('./data/plugins/astrbot_plugin_Keyword_reply_language', exist_ok=True)
+        # 创建目录
         os.makedirs(self.voice_folder, exist_ok=True)
-
-        # 加载关键词和群组设置
         self.load_data()
         logger.info(f"关键词语音回复插件已加载，共 {len(self.keywords)} 个关键词")
+
+    
 
     def load_data(self):
         """加载关键词和群组设置"""
@@ -51,7 +61,7 @@ class KeywordVoicePlugin(Star):
         if os.path.exists(self.keywords_file):
             try:
                 with open(self.keywords_file, 'r', encoding='utf-8') as f:
-                    self.keywords = json.load(f)
+                    self.keywords = json.load(f)  # 直接加载整个JSON文件
                 logger.info(f"已加载 {len(self.keywords)} 个关键词")
             except Exception as e:
                 logger.error(f"加载关键词文件失败: {e}")
@@ -61,8 +71,8 @@ class KeywordVoicePlugin(Star):
             logger.info(f"关键词文件不存在，已创建空文件")
             self.keywords = {}
             self.save_keywords()
-
-        # 加载禁用群组
+    
+        # 加载禁用群组（同理修改）
         if os.path.exists(self.rooms_file):
             try:
                 with open(self.rooms_file, 'r', encoding='utf-8') as f:
@@ -81,20 +91,10 @@ class KeywordVoicePlugin(Star):
         """保存关键词到文件"""
         try:
             with open(self.keywords_file, 'w', encoding='utf-8') as f:
-                json.dump(self.keywords, f, ensure_ascii=False, indent=2)
+                json.dump(self.keywords, f, ensure_ascii=False, indent=2)  # 使用缩进美化格式
             logger.info(f"已保存 {len(self.keywords)} 个关键词")
         except Exception as e:
             logger.error(f"保存关键词文件失败: {e}")
-
-    def save_rooms(self):
-        """保存禁用群组到文件"""
-        try:
-            with open(self.rooms_file, 'w', encoding='utf-8') as f:
-                json.dump(self.rooms, f, ensure_ascii=False, indent=2)
-            logger.info(f"已保存 {len(self.rooms)} 个禁用群组")
-        except Exception as e:
-            logger.error(f"保存禁用群组文件失败: {e}")
-
     @filter.command("kwvoice")
     async def switch(self, event: AstrMessageEvent):
         """开关插件"""
@@ -265,28 +265,18 @@ class KeywordVoicePlugin(Star):
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
-
         # 检查群组是否禁用
         room = event.get_group_id()
         if room in self.rooms:
-            logger.info(f"群组 {room} 已禁用插件")
             return
 
-        # 提取消息文本
-        message_chain = getattr(event, "message_chain", None) or getattr(event, "message", None)
-        if not message_chain:
+        # 直接获取消息文本（兼容 aiocqhttp）
+        message = event.message_str.strip()
+        if not message:
             return
-
-        plain_text = ""
-        for element in message_chain.chain:
-            if isinstance(element, Plain):
-                plain_text += element.text.strip() + " "
-        message = plain_text.strip()
-        logger.info(f"接收消息：{message}")
 
         # 随机概率判定
         if random.random() > self.reply_chance:
-            logger.info(f"概率判定未通过（当前概率：{self.reply_chance})")
             return
 
         # --- 修复：添加完整的关键词匹配逻辑 ---
@@ -318,21 +308,18 @@ class KeywordVoicePlugin(Star):
                         keyword_data = data
                         break
 
-        # 发送语音
         if matched_keyword and keyword_data:
             voice_file = keyword_data["voice"]
             voice_path = os.path.join(self.voice_folder, voice_file)
             logger.info(f"语音文件路径：{voice_path}")
-            logger.info(f"文件是否存在：{os.path.exists(voice_path)}")
 
             if not os.path.exists(voice_path):
                 logger.error(f"语音文件不存在：{voice_path}")
                 return
 
             try:
-                voice_chain = MessageChain([
-                Record.fromFileSystem(voice_path)
-                ])
+                # 正确构建消息链
+                voice_chain = MessageChain([Record.fromFileSystem(voice_path)])
                 await event.send(voice_chain)
                 logger.info("语音消息发送成功")
             except Exception as e:
