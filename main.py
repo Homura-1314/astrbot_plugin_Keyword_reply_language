@@ -9,6 +9,8 @@ from typing import Dict, List
 from astrbot.api.all import Plain  
 from astrbot.api.all import Record
 from astrbot.api.event import filter 
+from astrbot.api.message_components import Record
+from astrbot.api.event import PlatformAdapterType, EventMessageType
 
 @register("astrbot_plugin_Keyword_reply_language", "关键词语音回复", 
           "自动检测消息中的关键词并回复对应的本地语音文件", 
@@ -43,21 +45,15 @@ class KeywordVoicePlugin(Star):
         logger.info(f"关键词语音回复插件已加载，共 {len(self.keywords)} 个关键词")
 
     def load_data(self):
-        """加载关键词和群组设置"""
-        # 加载关键词
-        if os.path.exists(self.keywords_file):
-            try:
+        """加载关键词"""
+        try:
+            if os.path.exists(self.keywords_file):
                 with open(self.keywords_file, "r", encoding="utf-8") as f:
-                    self.keywords = json.load(f)  # 直接加载整个JSON文件
+                    self.keywords = json.load(f)
                 logger.info(f"已加载 {len(self.keywords)} 个关键词")
-            except Exception as e:
-                logger.error(f"加载关键词文件失败: {e}")
-                self.keywords = {}
-                self.save_keywords()
-        else:
-            logger.info(f"关键词文件不存在，已创建空文件")
+        except Exception as e:
+            logger.error(f"加载关键词失败: {e}")
             self.keywords = {}
-            self.save_keywords()
 
         # 加载禁用群组（同理修改）
         if os.path.exists(self.rooms_file):
@@ -261,60 +257,51 @@ class KeywordVoicePlugin(Star):
         yield event.plain_result(f"已设置关键词「{keyword}」的文本内容")
 
     @filter.on_decorating_result()
+    @platform_adapter_type(PlatformAdapterType.AIOCQHTTP)
+    @event_message_type(EventMessageType.GROUP_MESSAGE)
     async def on_decorating_result(self, event: AstrMessageEvent):
-        logger.info("--- 进入消息处理函数 ---")
-    
-        # 调试事件对象属性
-        logger.info(f"事件对象属性：{dir(event)}")
-    
-        # 获取消息链（兼容不同适配器）
-        message_chain = None
-        if hasattr(event, "get_message_chain"):
-            message_chain = event.get_message_chain()
-        elif hasattr(event, "message_chain"):
-            message_chain = event.message_chain
-        elif hasattr(event, "message"):
-            message_chain = event.message
-    
-        if not message_chain:
-            logger.info("消息链为空")
+        # 检查群组是否禁用
+        room = event.get_group_id()
+        if room in self.rooms:
             return
-    
-        # 提取纯文本内容
-        plain_text = ""
-        for element in message_chain.chain:
-            if isinstance(element, Plain):
-                plain_text += element.text.strip() + " "
-        message = plain_text.strip()
-        logger.info(f"提取的文本内容：{message}")
+
+        # 获取消息文本
+        message = event.message_str.strip()
+        if not message:
+            return
 
         # 随机概率判定
         if random.random() > self.reply_chance:
-            logger.info(f"概率判定未通过（当前概率：{self.reply_chance})")
             return
 
         # 匹配关键词逻辑
         matched_keyword = None
         keyword_data = None
+        for keyword, data in self.keywords.items():
+            if self.regex_mode:
+                try:
+                    flags = re.IGNORECASE if not self.case_sensitive else 0
+                    if re.search(keyword, message, flags=flags):
+                        matched_keyword = keyword
+                        keyword_data = data
+                        break
+                except re.error as e:
+                    logger.error(f"正则错误: {e}")
+            else:
+                message_check = message if self.case_sensitive else message.lower()
+                keyword_check = keyword if self.case_sensitive else keyword.lower()
+                if self.exact_match and message_check == keyword_check:
+                    matched_keyword = keyword
+                    keyword_data = data
+                    break
+                elif not self.exact_match and keyword_check in message_check:
+                    matched_keyword = keyword
+                    keyword_data = data
+                    break
 
-        # ...（原有匹配逻辑，已添加日志）
-
+        # 发送语音
         if matched_keyword and keyword_data:
             voice_file = keyword_data["voice"]
             voice_path = os.path.join(self.voice_folder, voice_file)
-            logger.info(f"语音文件路径：{voice_path}")
-            logger.info(f"文件是否存在：{os.path.exists(voice_path)}")
-
-            if not os.path.exists(voice_path):
-                logger.error(f"语音文件不存在：{voice_path}")
-                return
-
-            try:
-                voice_chain = MessageChain()
-                voice_chain.chain.append(Record.fromFileSystem(voice_path))
-                await event.send(voice_chain)
-                logger.info("语音消息发送成功")
-            except Exception as e:
-                logger.error(f"发送语音失败：{str(e)}")
-        else:
-            logger.info("未匹配到关键词")
+            logger.info(f"发送语音: {voice_path}")
+            await self.send_voice(event, voice_path)
