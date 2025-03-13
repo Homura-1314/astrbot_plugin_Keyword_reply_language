@@ -1,13 +1,17 @@
 import random
 from astrbot.api.event import filter, AstrMessageEvent, MessageEventResult
 from astrbot.api.all import *
-from AstrBot.astrbot.core.star.context import Context
+from astrbot.core.star.context import Context
 import json
 import os
 import re
 from typing import Dict, List
-from astrbot.api.all import Plain  
-from astrbot.api.all import Record  # 确保导入 Record 组件
+from astrbot.api.all import Plain
+from astrbot.api.message_components import Record  # 仅保留必要的导入
+from astrbot.api.event import filter
+from astrbot.core.star.filter.platform_adapter_type import PlatformAdapterType
+from astrbot.core.star.filter.event_message_type import EventMessageType
+from astrbot.api.event import filter, AstrMessageEvent
 
 @register("astrbot_plugin_Keyword_reply_language", "关键词语音回复", 
           "自动检测消息中的关键词并回复对应的本地语音文件", 
