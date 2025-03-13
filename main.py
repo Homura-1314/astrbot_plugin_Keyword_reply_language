@@ -257,38 +257,34 @@ class KeywordVoicePlugin(Star):
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
-        def clean_text(text: str) -> str:
-            """清洗文本：移除非字母数字字符并转为小写"""
-            cleaned = re.sub(r'[^\w]', '', text)  # 移除非字母数字字符
-            return cleaned.lower()
-            
         logger.info(
             f"收到消息类型：{event.get_message_type()}, 内容：{event.message_str}"
         )
 
-        # 检查群组是否禁用（私聊跳过）
-        if event.get_message_type() != "private":
+        # 处理私聊消息
+        if event.get_message_type() == "private":
+            message = event.message_str.strip()
+        else:
+            # 群聊检查是否禁用
             room = event.get_group_id()
             if room in self.rooms:
+                logger.info(f"群组 {room} 已禁用插件")
                 return
+            message = event.message_str.strip()
 
-        # 提取消息文本并清洗
-        message = event.message_str.strip()
         if not message:
             return
 
-        message_check = clean_text(message)  # 清洗后的消息
-
         # 随机概率判定
         if random.random() > self.reply_chance:
+            logger.info(f"概率判定未通过（当前概率：{self.reply_chance})")
             return
 
-        # 匹配关键词逻辑
+        # --- 修复：添加完整的关键词匹配逻辑 ---
         matched_keyword = None
         keyword_data = None
 
         if self.regex_mode:
-            # 正则表达式模式（原有逻辑）
             for keyword, data in self.keywords.items():
                 try:
                     flags = re.IGNORECASE if not self.case_sensitive else 0
@@ -298,18 +294,24 @@ class KeywordVoicePlugin(Star):
                         break
                 except re.error as e:
                     logger.error(f"正则表达式错误：{keyword} - {e}")
-            else:
-            # 模糊匹配模式（优化后）
-                for keyword, data in self.keywords.items():
-                    keyword_check = clean_text(keyword)  # 清洗关键词
+        else:
+            message_check = message if self.case_sensitive else message.lower()
+            for keyword, data in self.keywords.items():
+                keyword_check = keyword if self.case_sensitive else keyword.lower()
+                if self.exact_match:
+                    if message_check == keyword_check:
+                        matched_keyword = keyword
+                        keyword_data = data
+                        break
+                else:
                     if keyword_check in message_check:
                         matched_keyword = keyword
                         keyword_data = data
                         break
 
-            if matched_keyword and keyword_data:
-                voice_path = os.path.join(self.voice_folder, keyword_data["voice"])
-                logger.info(f"语音文件路径：{voice_path}")
+        if matched_keyword and keyword_data:
+            voice_path = os.path.join(self.voice_folder, keyword_data["voice"])
+            logger.info(f"语音文件路径：{voice_path}")
 
             if not os.path.exists(voice_path):
                 logger.error(f"语音文件不存在：{voice_path}")
