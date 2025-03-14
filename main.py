@@ -86,15 +86,13 @@ class KeywordVoicePlugin(Star):
             self.save_rooms()
 
     def save_keywords(self):
-        """保存关键词到文件"""
+        """保存关键词到文件（自动处理子关键词字段）"""
         try:
             with open(self.keywords_file, "w", encoding="utf-8") as f:
-                json.dump(
-                    self.keywords, f, ensure_ascii=False, indent=2
-                )  # 使用缩进美化格式
-            logger.info(f"已保存 {len(self.keywords)} 个关键词")
+                json.dump(self.keywords, f, ensure_ascii=False, indent=2)
+            logger.info(f"关键词保存成功（含 {len(self.keywords)} 个主关键词）")
         except Exception as e:
-            logger.error(f"保存关键词文件失败: {e}")
+            logger.error(f"保存失败: {e}")
 
     def save_rooms(self):
         """保存禁用群组到文件"""
@@ -179,21 +177,18 @@ class KeywordVoicePlugin(Star):
 
     @keyword_voice.command("list")
     async def list_keywords(self, event: AstrMessageEvent):
-        """列出所有关键词
-        /kv list"""
+        """列出所有主关键词及其子关键词"""
         if not self.keywords:
-            yield event.plain_result("暂无关键词")
+            yield event.plain_result("当前无关键词")
             return
 
-        result = "当前关键词语音列表：\n"
-        for i, (keyword, data) in enumerate(self.keywords.items(), 1):
-            voice_file = data["voice"]
-            text = data.get("text", "")
-            if text:
-                text_preview = text[:15] + "..." if len(text) > 15 else text
-                result += f"{i}. 「{keyword}」→ {voice_file} ({text_preview})\n"
-            else:
-                result += f"{i}. 「{keyword}」→ {voice_file}\n"
+        result = "📜 关键词列表：\n"
+        for idx, (main_kw, data) in enumerate(self.keywords.items(), 1):
+            result += f"{idx}. 主关键词：{main_kw}\n"
+            result += f"   - 语音文件：{data['voice']}\n"
+            result += f"   - 关联文本：{data.get('text', '无')}\n"
+            sub_keywords = data.get("sub_keywords", [])  # 安全获取子关键词
+            result += f"   - 子关键词：{', '.join(sub_keywords)}\n"  # 正确闭合
 
         yield event.plain_result(result.strip())
 
@@ -255,6 +250,45 @@ class KeywordVoicePlugin(Star):
         self.keywords[keyword]["text"] = text  # 直接更新全局文本
         self.save_keywords()
         yield event.plain_result(f"已设置关键词「{keyword}」的全局文本内容")
+
+    '''
+    @keyword_voice.command("subadd")
+    async def add_sub_keyword(self, event: AstrMessageEvent, main_keyword: str, sub_keyword: str):
+
+        """添加子关键词main_keyword为[主关键词]sub_keyword为[子关键词]"""
+        raw_message = event.message_str.strip()
+        logger.info(f"原始指令内容：{raw_message}")
+
+        # 分割参数（保留斜杠）
+        parts = raw_message.split()
+        logger.info(f"分割后的参数列表：{parts}")
+
+        # 校验指令格式：/kv subadd 主关键词 子关键词
+        if len(parts) < 4 or parts[0] != "/kv" or parts[1] != "subadd":
+            yield event.plain_result("❌ 格式错误！正确格式：/kv subadd [主关键词] [子关键词]")
+            return
+
+        main_keyword = parts[2]
+        sub_keyword = parts[3]
+
+        # 检查主关键词是否存在
+        if main_keyword not in self.keywords:
+            yield event.plain_result(f"❌ 主关键词「{main_keyword}」不存在")
+            return
+
+        # 添加子关键词
+        data = self.keywords[main_keyword]
+        sub_keywords = data.get("sub_keywords", [])
+
+        if sub_keyword in sub_keywords:
+            yield event.plain_result(f"❌ 子关键词「{sub_keyword}」已存在")
+        else:
+            sub_keywords.append(sub_keyword)
+            data["sub_keywords"] = sub_keywords
+            self.save_keywords()
+            logger.info(f"✅ 已添加子关键词：{main_keyword} → {sub_keyword}")
+            yield event.plain_result(f"✅ 已为「{main_keyword}」添加子关键词 → {sub_keyword}")
+    '''
 
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
