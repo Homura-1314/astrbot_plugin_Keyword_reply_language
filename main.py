@@ -12,6 +12,7 @@ from astrbot.api.message_components import Record  # 仅保留必要的导入
 from astrbot.api.event import filter
 from astrbot.api.event import filter, AstrMessageEvent
 from astrbot.api.event import MessageChain  # 确保导入 MessageChain
+from fuzzywuzzy import fuzz
 
 @register(
     "astrbot_plugin_Keyword_reply_language",
@@ -35,7 +36,7 @@ class KeywordVoicePlugin(Star):
         self.case_sensitive = self.config.get("区分大小写", False)
         self.exact_match = self.config.get("精确匹配", False)
         self.reply_chance = self.config.get("回复概率", 1.0)
-        self.send_text = self.config.get("同时发送文本", False)
+        self.send_text = self.config.get("同时发送文本", True)
         logger.info(f"文本发送开关状态：{self.send_text}")  # 添加此行
 
         # 文件路径
@@ -271,8 +272,13 @@ class KeywordVoicePlugin(Star):
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
         logger.info(
-            f"收到消息类型：{event.get_message_type()}, 内容：{event.message_str}"
-        )
+        f"收到消息类型：{event.get_message_type()}, 内容：{event.message_str}"
+    )
+
+        def clean_text(text: str) -> str:
+            """清洗文本：保留中文、字母、数字，移除其他字符"""
+            cleaned = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]', '', text)
+            return cleaned.lower()
 
         # 处理私聊消息
         if event.get_message_type() == "private":
@@ -285,20 +291,20 @@ class KeywordVoicePlugin(Star):
                 return
             message = event.message_str.strip()
 
-        if not message:
+        if not message or random.random() > self.reply_chance:
             return
 
-        # 随机概率判定
-        if random.random() > self.reply_chance:
-            logger.info(f"概率判定未通过（当前概率：{self.reply_chance})")
-            return
+        # 清洗消息
+        message_check = clean_text(message)
+        logger.info(f"清洗后的消息内容: {message_check}")
 
-        # --- 修复：添加完整的关键词匹配逻辑 ---
+        # --- 匹配逻辑修复 ---
         matched_keyword = None
         keyword_data = None
 
         if self.regex_mode:
             for keyword, data in self.keywords.items():
+                keyword_cleaned = clean_text(keyword)
                 try:
                     flags = re.IGNORECASE if not self.case_sensitive else 0
                     if re.search(keyword, message, flags=flags):
@@ -308,19 +314,31 @@ class KeywordVoicePlugin(Star):
                 except re.error as e:
                     logger.error(f"正则表达式错误：{keyword} - {e}")
         else:
-            message_check = message if self.case_sensitive else message.lower()
+            # 遍历关键词及其数据
             for keyword, data in self.keywords.items():
-                keyword_check = keyword if self.case_sensitive else keyword.lower()
-                if self.exact_match:
-                    if message_check == keyword_check:
+                keyword_cleaned = clean_text(keyword)
+                matched = False  # 标志变量
+
+                # 1. 检查子关键词
+                sub_keywords = data.get("sub_keywords", [])
+                for sub_kw in sub_keywords:
+                    sub_cleaned = clean_text(sub_kw)
+                    if sub_cleaned in message_check:
                         matched_keyword = keyword
                         keyword_data = data
-                        break
-                else:
-                    if keyword_check in message_check:
-                        matched_keyword = keyword
-                        keyword_data = data
-                        break
+                        matched = True
+                        break  # 跳出子关键词循环
+
+                if matched:
+                    break  # 跳出外层循环
+
+                # 2. 模糊匹配主关键词
+                similarity = fuzz.partial_ratio(keyword_cleaned, message_check)
+                if similarity > 80:
+                    matched_keyword = keyword
+                    keyword_data = data
+                    logger.info(f"模糊匹配成功：相似度 {similarity}%")
+                    break  # 跳出外层循环
 
         if matched_keyword and keyword_data:          
             voice_path = os.path.join(self.voice_folder, keyword_data["voice"])
@@ -333,24 +351,27 @@ class KeywordVoicePlugin(Star):
         if matched_keyword and keyword_data:
             logger.info(f"匹配到关键词：{matched_keyword}, 文本内容：{keyword_data.get('text')}")
 
-            # 发送语音
-            voice_file = keyword_data["voice"]
-            voice_path = os.path.join(self.voice_folder, voice_file)
+        # --- 发送逻辑 ---
+        if matched_keyword and keyword_data:
+            voice_path = os.path.join(self.voice_folder, keyword_data["voice"])
+            text_content = keyword_data.get("text", "")
+
+        # 发送语音
+        if os.path.exists(voice_path):
             try:
                 voice_chain = MessageChain([Record.fromFileSystem(voice_path)])
                 await event.send(voice_chain)
-                logger.info("语音消息发送成功")
+                logger.info(f"语音发送成功：{voice_path}")
             except Exception as e:
-                logger.error(f"发送语音失败：{e}")
+                logger.error(f"语音发送失败: {e}")
 
-        # 发送全局文本
-        if matched_keyword and keyword_data.get("text"):
+        # 发送文本
+        if event.message_str and text_content:
             try:
-                logger.info(f"准备发送文本到 {event.get_session_id()}")
-                text_chain = MessageChain([Plain(keyword_data["text"])])
+                text_chain = MessageChain([Plain(text_content)])
                 await event.send(text_chain)
-                logger.info(f"发送全局文本：{keyword_data['text']}")
+                logger.info(f"文本发送成功：{text_content}")
             except Exception as e:
-                logger.error(f"发送文本失败：{e}")
+                logger.error(f"文本发送失败: {e}")
 
             event.stop_event()  # 结束事件传播
