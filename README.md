@@ -35,4 +35,4 @@
 
 - /kv text 设置关键词的全局文本内容（所有群组和私聊生效）
 
-## 感谢DeekSeek和Cluade的大力支持（纯python小白，提lssues轻喷QAQ）
+## 感谢DeekSeek和Cluade的大力支持（纯python小白史山代码，提lssues轻喷QAQ）
