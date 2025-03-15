@@ -2,10 +2,10 @@
 
 ## 📑目录
 
-- <a id= "main-features">🌟主要功能</a>
-- <a id= "main-commands">⚙️主要命令</a>
+- [🌟主要功能](#main-features)
+- [⚙️主要命令](#main-commands)
 
-## [主要功能](#main-features)
+## <a id= "main-features">主要功能</a>
 
 1. 关键词触发语音回复 - 当有人在群聊中提到特定关键词时，机器人会自动回复对应的本地语音文件
 2. 可选文本回复 - 可以同时发送文本内容或仅发送语音
@@ -17,7 +17,7 @@
 - 可调整的回复概率
 - 可调整模糊匹配的概率
 
-## [主要命令](#main-commands)
+## <a id= "main-commands">主要命令</a>
 
 - /kwvoice - 为当前群组开启/关闭插件
 
