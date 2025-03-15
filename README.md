@@ -15,7 +15,7 @@
 - 大小写敏感性设置
 - 精确匹配选项
 - 可调整的回复概率
-- 可调整模糊匹配的概率
+- 可从源码调整模糊匹配的概率
 
 ## <a id= "main-commands">主要命令</a>
 
@@ -35,4 +35,4 @@
 
 - /kv text 设置关键词的全局文本内容（所有群组和私聊生效）
 
-## 感谢DeekSeek和Cluade的大力支持（纯python小白史山代码，提lssues轻喷QAQ）
+## 感谢DeekSeek和Cluade的大力支持（纯python小白的史山代码，提lssues轻喷QAQ）
