@@ -251,45 +251,6 @@ class KeywordVoicePlugin(Star):
         self.save_keywords()
         yield event.plain_result(f"已设置关键词「{keyword}」的全局文本内容")
 
-    '''
-    @keyword_voice.command("subadd")
-    async def add_sub_keyword(self, event: AstrMessageEvent, main_keyword: str, sub_keyword: str):
-
-        """添加子关键词main_keyword为[主关键词]sub_keyword为[子关键词]"""
-        raw_message = event.message_str.strip()
-        logger.info(f"原始指令内容：{raw_message}")
-
-        # 分割参数（保留斜杠）
-        parts = raw_message.split()
-        logger.info(f"分割后的参数列表：{parts}")
-
-        # 校验指令格式：/kv subadd 主关键词 子关键词
-        if len(parts) < 4 or parts[0] != "/kv" or parts[1] != "subadd":
-            yield event.plain_result("❌ 格式错误！正确格式：/kv subadd [主关键词] [子关键词]")
-            return
-
-        main_keyword = parts[2]
-        sub_keyword = parts[3]
-
-        # 检查主关键词是否存在
-        if main_keyword not in self.keywords:
-            yield event.plain_result(f"❌ 主关键词「{main_keyword}」不存在")
-            return
-
-        # 添加子关键词
-        data = self.keywords[main_keyword]
-        sub_keywords = data.get("sub_keywords", [])
-
-        if sub_keyword in sub_keywords:
-            yield event.plain_result(f"❌ 子关键词「{sub_keyword}」已存在")
-        else:
-            sub_keywords.append(sub_keyword)
-            data["sub_keywords"] = sub_keywords
-            self.save_keywords()
-            logger.info(f"✅ 已添加子关键词：{main_keyword} → {sub_keyword}")
-            yield event.plain_result(f"✅ 已为「{main_keyword}」添加子关键词 → {sub_keyword}")
-    '''
-
     @filter.on_decorating_result()
     async def on_decorating_result(self, event: AstrMessageEvent):
         logger.info(
@@ -398,3 +359,43 @@ class KeywordVoicePlugin(Star):
                 logger.error(f"文本发送失败: {e}")
 
             event.stop_event()  # 结束事件传播
+
+
+    '''
+    @keyword_voice.command("subadd")
+    async def add_sub_keyword(self, event: AstrMessageEvent, main_keyword: str, sub_keyword: str):
+
+        """添加子关键词main_keyword为[主关键词]sub_keyword为[子关键词]"""
+        raw_message = event.message_str.strip()
+        logger.info(f"原始指令内容：{raw_message}")
+
+        # 分割参数（保留斜杠）
+        parts = raw_message.split()
+        logger.info(f"分割后的参数列表：{parts}")
+
+        # 校验指令格式：/kv subadd 主关键词 子关键词
+        if len(parts) < 4 or parts[0] != "/kv" or parts[1] != "subadd":
+            yield event.plain_result("❌ 格式错误！正确格式：/kv subadd [主关键词] [子关键词]")
+            return
+
+        main_keyword = parts[2]
+        sub_keyword = parts[3]
+
+        # 检查主关键词是否存在
+        if main_keyword not in self.keywords:
+            yield event.plain_result(f"❌ 主关键词「{main_keyword}」不存在")
+            return
+
+        # 添加子关键词
+        data = self.keywords[main_keyword]
+        sub_keywords = data.get("sub_keywords", [])
+
+        if sub_keyword in sub_keywords:
+            yield event.plain_result(f"❌ 子关键词「{sub_keyword}」已存在")
+        else:
+            sub_keywords.append(sub_keyword)
+            data["sub_keywords"] = sub_keywords
+            self.save_keywords()
+            logger.info(f"✅ 已添加子关键词：{main_keyword} → {sub_keyword}")
+            yield event.plain_result(f"✅ 已为「{main_keyword}」添加子关键词 → {sub_keyword}")
+    '''
