@@ -316,7 +316,7 @@ class KeywordVoicePlugin(Star):
 
                 # 2. 模糊匹配主关键词
                 similarity = fuzz.partial_ratio(keyword_cleaned, message_check)
-                if similarity > 80:
+                if similarity > 50:
                     matched_keyword = keyword
                     keyword_data = data
                     logger.info(f"模糊匹配成功：相似度 {similarity}%")
@@ -339,24 +339,22 @@ class KeywordVoicePlugin(Star):
         if matched_keyword and keyword_data:
             voice_path = os.path.join(self.voice_folder, keyword_data["voice"])
             text_content = keyword_data.get("text", "")
-
-        # 发送语音
-        if os.path.exists(voice_path):
-            try:
-                voice_chain = MessageChain([Record.fromFileSystem(voice_path)])
-                await event.send(voice_chain)
-                logger.info(f"语音发送成功：{voice_path}")
-            except Exception as e:
-                logger.error(f"语音发送失败: {e}")
-
-        # 发送文本
-        if event.message_str and text_content:
-            try:
-                text_chain = MessageChain([Plain(text_content)])
-                await event.send(text_chain)
-                logger.info(f"文本发送成功：{text_content}")
-            except Exception as e:
-                logger.error(f"文本发送失败: {e}")
+            # 发送语音
+            if os.path.exists(voice_path):
+                try:
+                    voice_chain = MessageChain([Record.fromFileSystem(voice_path)])
+                    await event.send(voice_chain)
+                    logger.info(f"语音发送成功：{voice_path}")
+                except Exception as e:
+                    logger.error(f"语音发送失败: {e}")
+            # 发送文本
+            if event.message_str and text_content:
+                try:
+                    text_chain = MessageChain([Plain(text_content)])
+                    await event.send(text_chain)
+                    logger.info(f"文本发送成功：{text_content}")
+                except Exception as e:
+                    logger.error(f"文本发送失败: {e}")
 
             event.stop_event()  # 结束事件传播
 
