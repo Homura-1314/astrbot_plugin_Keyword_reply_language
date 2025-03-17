@@ -8,10 +8,10 @@ import os
 import re
 from astrbot.api.star import Context, Star, register
 from astrbot.api.all import Plain
-from astrbot.api.message_components import Record  # 仅保留必要的导入
+from astrbot.api.message_components import Record  
 from astrbot.api.event import filter
 from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.api.event import MessageChain  # 确保导入 MessageChain
+from astrbot.api.event import MessageChain  
 from fuzzywuzzy import fuzz
 
 
@@ -22,8 +22,8 @@ from fuzzywuzzy import fuzz
     "v1.0.0",
 )
 class KeywordVoicePlugin(Star):
-    def __init__(self, context: Context):  # 仅接收 context
-        super().__init__(context)  # 父类构造函数仅需 context
+    def __init__(self, context: Context):  
+        super().__init__(context)  
         self.enabled = True
         self.rooms = []
         self.config = context.get_config().get(
@@ -38,7 +38,7 @@ class KeywordVoicePlugin(Star):
         self.exact_match = self.config.get("精确匹配", False)
         self.reply_chance = self.config.get("回复概率", 1.0)
         self.send_text = self.config.get("同时发送文本", True)
-        logger.info(f"文本发送开关状态：{self.send_text}")  # 添加此行
+        logger.info(f"文本发送开关状态：{self.send_text}")  
 
         # 文件路径
         self.keywords_file = (
@@ -316,7 +316,7 @@ class KeywordVoicePlugin(Star):
 
                 # 2. 模糊匹配主关键词
                 similarity = fuzz.partial_ratio(keyword_cleaned, message_check)
-                if similarity > 50:
+                if similarity > 50: //匹配的模糊概率
                     matched_keyword = keyword
                     keyword_data = data
                     logger.info(f"模糊匹配成功：相似度 {similarity}%")
