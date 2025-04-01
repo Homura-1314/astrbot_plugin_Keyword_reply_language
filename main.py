@@ -70,7 +70,7 @@ class KeywordVoicePlugin(Star):
             self.keywords = {}
             self.save_keywords()
 
-        # 加载禁用群组（同理修改）
+        # 加载禁用群组
         if os.path.exists(self.rooms_file):
             try:
                 with open(self.rooms_file, "r", encoding="utf-8") as f:
@@ -160,7 +160,7 @@ class KeywordVoicePlugin(Star):
 
         self.keywords[keyword] = {
             "voice": voice_file,
-            "text": "",  # 文本内容留空（若不需要可删除此行）
+            "text": "",  # 文本内容留空
         }
         self.save_keywords()
 
