@@ -36,9 +36,4 @@
 
 - /kv text 设置关键词的全局文本内容（所有群组和私聊生效）
 
-## <a id= "main-usecases">使用事例</a>
-![事例](.github/img/Snipaste_2025-03-15_14-59-46.png)
-![事例](.github/img/Snipaste_2025-03-15_15-01-13.png)
-![事例](.github/img/Snipaste_2025-03-15_15-20-37.png)
-![事例](.github/img/Snipaste_2025-03-15_15-23-33.png)
 ## 感谢DeekSeek和Cluade的大力支持（纯python小白的史山代码，提lssues轻喷QAQ）
